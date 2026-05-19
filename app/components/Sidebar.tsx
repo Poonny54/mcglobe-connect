@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   Globe,
   LayoutDashboard,
@@ -15,6 +15,7 @@ import {
   Plus,
   LogOut,
 } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 
 const operationsNav = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -33,6 +34,14 @@ const ratesNav = [
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const router   = useRouter()
+
+  async function handleSignOut() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push("/login")
+    router.refresh()
+  }
 
   return (
     <aside className="flex flex-col w-64 min-h-screen shrink-0 bg-gradient-to-b from-slate-900 to-slate-800">
@@ -131,7 +140,10 @@ export default function Sidebar() {
             ADMIN
           </span>
         </div>
-        <button className="flex items-center gap-2 mt-1 px-2 py-1.5 w-full rounded-md text-slate-400 hover:text-white hover:bg-white/10 active:scale-95 text-sm transition-all duration-150">
+        <button
+          onClick={handleSignOut}
+          className="flex items-center gap-2 mt-1 px-2 py-1.5 w-full rounded-md text-slate-400 hover:text-white hover:bg-white/10 active:scale-95 text-sm transition-all duration-150"
+        >
           <LogOut className="w-4 h-4" />
           Sign Out
         </button>
