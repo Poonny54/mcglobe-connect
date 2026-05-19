@@ -1,23 +1,6 @@
 import { Package, Plus, Clock, ArrowRight } from "lucide-react"
 import Link from "next/link"
-
-const statCards = [
-  { label: "Total Shipments", value: "0", bar: "bg-blue-500" },
-  { label: "In Transit", value: "0", bar: "bg-amber-500" },
-  { label: "Delivered", value: "0", bar: "bg-green-500" },
-  { label: "Attention", value: "0", bar: "bg-red-500" },
-  { label: "Customers", value: "0", bar: "bg-purple-500" },
-]
-
-const statusBreakdown = [
-  { label: "Booked", topBorder: "border-t-2 border-slate-400", text: "text-slate-700" },
-  { label: "Picked Up", topBorder: "border-t-2 border-blue-400", text: "text-slate-700" },
-  { label: "In Transit", topBorder: "border-t-2 border-blue-500", text: "text-slate-700" },
-  { label: "Customs", topBorder: "border-t-2 border-amber-500", text: "text-slate-700" },
-  { label: "Out for Delivery", topBorder: "border-t-2 border-indigo-500", text: "text-slate-700" },
-  { label: "Delivered", topBorder: "border-t-2 border-green-500", text: "text-slate-700" },
-  { label: "On Hold", topBorder: "border-t-2 border-red-500", text: "text-slate-700" },
-]
+import { createServerClient } from "@/lib/supabase/server"
 
 const onboardingSteps = [
   {
@@ -37,7 +20,53 @@ const onboardingSteps = [
   },
 ]
 
-export default function DashboardPage() {
+function n(count: number | null) {
+  return count ?? 0
+}
+
+export default async function DashboardPage() {
+  const supabase = await createServerClient()
+
+  const [
+    { count: total },
+    { count: inTransit },
+    { count: delivered },
+    { count: onHold },
+    { count: customers },
+    { count: booked },
+    { count: pickedUp },
+    { count: customs },
+    { count: outForDelivery },
+  ] = await Promise.all([
+    supabase.from("shipments").select("*", { count: "exact", head: true }),
+    supabase.from("shipments").select("*", { count: "exact", head: true }).eq("status", "in_transit"),
+    supabase.from("shipments").select("*", { count: "exact", head: true }).eq("status", "delivered"),
+    supabase.from("shipments").select("*", { count: "exact", head: true }).eq("status", "on_hold"),
+    supabase.from("customers").select("*",  { count: "exact", head: true }),
+    supabase.from("shipments").select("*", { count: "exact", head: true }).eq("status", "booked"),
+    supabase.from("shipments").select("*", { count: "exact", head: true }).eq("status", "picked_up"),
+    supabase.from("shipments").select("*", { count: "exact", head: true }).eq("status", "customs"),
+    supabase.from("shipments").select("*", { count: "exact", head: true }).eq("status", "out_for_delivery"),
+  ])
+
+  const statCards = [
+    { label: "Total Shipments", value: n(total),      bar: "bg-blue-500" },
+    { label: "In Transit",      value: n(inTransit),  bar: "bg-amber-500" },
+    { label: "Delivered",       value: n(delivered),  bar: "bg-green-500" },
+    { label: "Attention",       value: n(onHold),     bar: "bg-red-500" },
+    { label: "Customers",       value: n(customers),  bar: "bg-purple-500" },
+  ]
+
+  const statusBreakdown = [
+    { label: "Booked",           count: n(booked),         topBorder: "border-t-2 border-slate-400" },
+    { label: "Picked Up",        count: n(pickedUp),       topBorder: "border-t-2 border-blue-400" },
+    { label: "In Transit",       count: n(inTransit),      topBorder: "border-t-2 border-blue-500" },
+    { label: "Customs",          count: n(customs),        topBorder: "border-t-2 border-amber-500" },
+    { label: "Out for Delivery", count: n(outForDelivery), topBorder: "border-t-2 border-indigo-500" },
+    { label: "Delivered",        count: n(delivered),      topBorder: "border-t-2 border-green-500" },
+    { label: "On Hold",          count: n(onHold),         topBorder: "border-t-2 border-red-500" },
+  ]
+
   return (
     <div className="px-8 py-8 max-w-7xl">
       {/* Header */}
@@ -78,12 +107,12 @@ export default function DashboardPage() {
           <Clock className="w-4 h-4 text-slate-400" />
         </div>
         <div className="grid grid-cols-7 gap-3">
-          {statusBreakdown.map(({ label, topBorder, text }) => (
+          {statusBreakdown.map(({ label, count, topBorder }) => (
             <div
               key={label}
               className={`rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-center cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 ${topBorder}`}
             >
-              <p className={`text-xl font-bold ${text}`}>0</p>
+              <p className="text-xl font-bold text-slate-700">{count}</p>
               <p className="text-xs font-medium text-slate-500 mt-0.5 leading-tight">{label}</p>
             </div>
           ))}
